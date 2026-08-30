@@ -66,17 +66,34 @@ jobs:
         working-directory: terraform
         run: terraform validate
       
-      - name: Terraform Plan
-        working-directory: terraform
-        env:
-          ARM_USE_OIDC: true
-        run: terraform plan
+      # - name: Terraform Plan
+      #   working-directory: terraform
+      #   env:
+      #     ARM_USE_OIDC: true
+      #   run: terraform plan
       
-      - name: Terraform Apply
-        working-directory: terraform
-        env:
-          ARM_USE_OIDC: true
-        run: terraform apply -auto-approve
+      # - name: Terraform Apply
+      #   working-directory: terraform
+      #   env:
+      #     ARM_USE_OIDC: true
+      #   run: terraform apply -auto-approve
+      - name: Terraform Plan
+  working-directory: terraform
+  env:
+    ARM_USE_OIDC: true
+    ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  run: terraform plan
+
+- name: Terraform Apply
+  working-directory: terraform
+  env:
+    ARM_USE_OIDC: true
+    ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  run: terraform apply -auto-approve
 
   deploy-app:
     name: Deploy Application
