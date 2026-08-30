@@ -26,3 +26,16 @@ resource "azurerm_mssql_database" "main" {
 
   tags = local.common_tags
 }
+
+# Grant App Service managed identity permission to authenticate to SQL Database via Azure AD
+resource "azurerm_mssql_virtual_network_rule" "app_vnet_rule" {
+  name      = "vnet-rule-app-service"
+  server_id = azurerm_mssql_server.main.id
+  subnet_id = azurerm_subnet.app_service_integration.id
+}
+
+# Grant App Service managed identity as Azure AD user in the database
+resource "azurerm_mssql_server_microsoft_support_auditing_policy" "main" {
+  server_id = azurerm_mssql_server.main.id
+  enabled   = true
+}

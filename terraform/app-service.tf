@@ -46,7 +46,7 @@ resource "azurerm_linux_web_app" "app" {
   virtual_network_subnet_id = azurerm_subnet.app_service_integration.id
 
   app_settings = {
-    AZURE_SQL_CONNECTION_STRING = "jdbc:sqlserver://${azurerm_mssql_server.main.fully_qualified_domain_name}:1433;databaseName=${azurerm_mssql_database.main.name};msiClientId=${azurerm_user_assigned_identity.app.client_id};authentication=ActiveDirectoryMSI;"
+    AZURE_SQL_CONNECTION_STRING = "jdbc:sqlserver://${azurerm_mssql_server.main.fully_qualified_domain_name}:1433;databaseName=${azurerm_mssql_database.main.name};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;authentication=ActiveDirectoryMSI;msiClientId=${azurerm_user_assigned_identity.app.client_id};"
     JWT_SECRET                  = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.jwt_secret.versionless_id})"
     APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.app.connection_string
   }
