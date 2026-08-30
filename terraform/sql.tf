@@ -6,13 +6,13 @@ resource "azurerm_mssql_server" "main" {
   version = "12.0"
 
   minimum_tls_version          = "1.2"
-  public_network_access_enabled = true
+  public_network_access_enabled = false  # Changed for security
 
   azuread_administrator {
-    login_username              = "terraform-admin"
+    login_username              = data.azurerm_client_config.current.client_id  # Use service principal
     object_id                   = data.azurerm_client_config.current.object_id
     tenant_id                   = data.azurerm_client_config.current.tenant_id
-    azuread_authentication_only = true
+    azuread_authentication_only = true  # AAD-only auth (no SQL passwords)
   }
 
   tags = local.common_tags

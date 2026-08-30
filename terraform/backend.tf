@@ -7,7 +7,6 @@ terraform {
 
     use_oidc         = true
     use_azuread_auth = true
-
-    
+    # Skip explicit auth - will use ARM_* env vars from workflow
   }
 }
