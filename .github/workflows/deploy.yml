@@ -14,7 +14,7 @@ env:
 jobs:
 
   # ============================================================
-  # 1. BUILD JAVA APPLICATION
+  # Stage 1: Build Java Application
   # ============================================================
   build:
     name: Build Application
@@ -43,7 +43,7 @@ jobs:
 
 
   # ============================================================
-  # 2. DEPLOY INFRASTRUCTURE
+  # Stage 2: Deploy Terraform Infrastructure
   # ============================================================
   deploy-infra:
     name: Deploy Infrastructure
@@ -54,7 +54,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Azure Login
+      - name: Azure Login with OIDC
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -74,8 +74,6 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_OIDC_TOKEN: ${{ secrets.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
-          ARM_OIDC_REQUEST_URL: ${{ secrets.ACTIONS_ID_TOKEN_REQUEST_URL }}
         run: terraform init
 
       - name: Terraform Validate
@@ -90,8 +88,6 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_OIDC_TOKEN: ${{ secrets.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
-          ARM_OIDC_REQUEST_URL: ${{ secrets.ACTIONS_ID_TOKEN_REQUEST_URL }}
         run: terraform plan
 
       - name: Terraform Apply
@@ -102,13 +98,11 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_OIDC_TOKEN: ${{ secrets.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
-          ARM_OIDC_REQUEST_URL: ${{ secrets.ACTIONS_ID_TOKEN_REQUEST_URL }}
         run: terraform apply -auto-approve
 
 
   # ============================================================
-  # 3. DEPLOY JAVA APPLICATION
+  # Stage 3: Deploy Java Application to Azure App Service
   # ============================================================
   deploy-app:
     name: Deploy Application
@@ -122,7 +116,7 @@ jobs:
           name: backend-jar
           path: app
 
-      - name: Azure Login
+      - name: Azure Login with OIDC
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
