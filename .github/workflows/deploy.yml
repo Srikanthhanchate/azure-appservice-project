@@ -12,117 +12,90 @@ env:
   TERRAFORM_VERSION: '1.9.8'
 
 jobs:
-
-  # =========================
-  # STAGE 1 - BUILD
-  # =========================
   build:
     name: Build Application
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+      
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
           cache: maven
-
+      
       - name: Build with Maven
         working-directory: backend
         run: mvn clean package -DskipTests
-
+      
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
           name: backend-jar
           path: backend/target/*.jar
 
-
-  # =========================
-  # STAGE 2 - DEPLOY INFRA
-  # =========================
   deploy-infra:
     name: Deploy Infrastructure
     runs-on: ubuntu-latest
     needs: build
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+      
       - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
+      
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
-
+      
       - name: Terraform Init
         working-directory: terraform
         env:
           ARM_USE_OIDC: true
-          ARM_USE_AZUREAD: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform init
-
+      
       - name: Terraform Validate
         working-directory: terraform
         run: terraform validate
-
+      
       - name: Terraform Plan
         working-directory: terraform
         env:
           ARM_USE_OIDC: true
-          ARM_USE_AZUREAD: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform plan
-
+      
       - name: Terraform Apply
         working-directory: terraform
         env:
           ARM_USE_OIDC: true
-          ARM_USE_AZUREAD: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform apply -auto-approve
 
-
-  # =========================
-  # STAGE 3 - DEPLOY APP
-  # =========================
   deploy-app:
     name: Deploy Application
     runs-on: ubuntu-latest
     needs: deploy-infra
-
     steps:
       - name: Download JAR
         uses: actions/download-artifact@v4
         with:
           name: backend-jar
           path: app
-
+      
       - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
+      
       - name: Deploy to App Service
         uses: azure/webapps-deploy@v3
         with:
