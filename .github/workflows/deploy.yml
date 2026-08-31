@@ -69,7 +69,36 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          audience: api://AzureADTokenExchange
+          audience: api://AzureADTokenExchange      - name: Verify Azure Identity
+        env:
+          EXPECTED_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        run: |
+          echo "Azure account:"
+          az account show \
+            --query "{subscription:id,tenant:tenantId,user:user.name,userType:user.type}" \
+            -o table
+
+          echo ""
+          echo "Checking logged-in identity..."
+
+          ACTUAL_CLIENT_ID=$(az account show --query "user.name" -o tsv)
+
+          if [ "$ACTUAL_CLIENT_ID" != "$EXPECTED_CLIENT_ID" ]; then
+            echo "ERROR: GitHub Actions logged into a different Azure identity."
+            exit 1
+          fi
+
+          echo "SUCCESS: Correct Azure client ID is being used."
+
+      - name: Test Storage Access
+        run: |
+          az storage blob list \
+            --account-name stwebapptfstate20260830 \
+            --container-name tfstate \
+            --auth-mode login \
+            -o table
+
+      
 
 
       # --------------------------------------------------------
