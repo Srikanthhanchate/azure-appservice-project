@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -54,21 +55,47 @@ jobs:
       app_service_name: ${{ steps.terraform_output.outputs.app_service_name }}
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
+      # --------------------------------------------------------
+      # Azure OIDC Login
+      # --------------------------------------------------------
       - name: Azure Login with OIDC
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          audience: api://AzureADTokenExchange
 
+
+      # --------------------------------------------------------
+      # TEMPORARY: Test Terraform State Storage Access
+      # --------------------------------------------------------
+      - name: Test Storage Access
+        run: |
+          az storage blob list \
+            --account-name stwebapptfstate20260830 \
+            --container-name tfstate \
+            --auth-mode login \
+            -o table
+
+
+      # --------------------------------------------------------
+      # Setup Terraform
+      # --------------------------------------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
+
+      # --------------------------------------------------------
+      # Terraform Init
+      # --------------------------------------------------------
       - name: Terraform Init
         working-directory: terraform
         env:
@@ -78,13 +105,27 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           ARM_SKIP_PROVIDER_REGISTRATION: true
-          TF_LOG: DEBUG
         run: terraform init
 
+
+      # --------------------------------------------------------
+      # Terraform Validate
+      # --------------------------------------------------------
       - name: Terraform Validate
         working-directory: terraform
+        env:
+          ARM_USE_OIDC: true
+          ARM_USE_AZUREAD: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_SKIP_PROVIDER_REGISTRATION: true
         run: terraform validate
 
+
+      # --------------------------------------------------------
+      # Terraform Plan
+      # --------------------------------------------------------
       - name: Terraform Plan
         working-directory: terraform
         env:
@@ -96,6 +137,10 @@ jobs:
           ARM_SKIP_PROVIDER_REGISTRATION: true
         run: terraform plan
 
+
+      # --------------------------------------------------------
+      # Terraform Apply
+      # --------------------------------------------------------
       - name: Terraform Apply
         working-directory: terraform
         env:
@@ -107,15 +152,25 @@ jobs:
           ARM_SKIP_PROVIDER_REGISTRATION: true
         run: terraform apply -auto-approve
 
+
+      # --------------------------------------------------------
+      # Get Terraform Outputs
+      # --------------------------------------------------------
       - name: Get Terraform Outputs
         id: terraform_output
         working-directory: terraform
+        env:
+          ARM_USE_OIDC: true
+          ARM_USE_AZUREAD: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          echo "app_service_name=$(terraform output -raw app_service_name)" >> $GITHUB_OUTPUT
+          echo "app_service_name=$(terraform output -raw app_service_name)" >> "$GITHUB_OUTPUT"
 
 
   # ============================================================
-  # Stage 3: Deploy Java Application to Azure App Service
+  # Stage 3: Deploy Java Application
   # ============================================================
   deploy-app:
     name: Deploy Application
@@ -123,19 +178,32 @@ jobs:
     needs: deploy-infra
 
     steps:
+
+      # --------------------------------------------------------
+      # Download JAR from Build Job
+      # --------------------------------------------------------
       - name: Download JAR
         uses: actions/download-artifact@v4
         with:
           name: backend-jar
           path: app
 
+
+      # --------------------------------------------------------
+      # Azure OIDC Login
+      # --------------------------------------------------------
       - name: Azure Login with OIDC
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          audience: api://AzureADTokenExchange
 
+
+      # --------------------------------------------------------
+      # Deploy JAR to Azure App Service
+      # --------------------------------------------------------
       - name: Deploy to App Service
         uses: azure/webapps-deploy@v3
         with:
