@@ -1,5 +1,5 @@
 resource "azurerm_key_vault" "main" {
-  name                = local.key_vault_name
+  name                = "${local.key_vault_name}-${data.azurerm_client_config.current.subscription_id}"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
 

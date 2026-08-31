@@ -1,6 +1,6 @@
 project_name = "webapp"
 environment  = "dev"
-location     = "East US"
+location     = "Central India"
 
 vnet_address_space = [
   "10.10.0.0/16"
