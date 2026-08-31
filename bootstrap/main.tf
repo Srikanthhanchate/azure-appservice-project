@@ -26,8 +26,10 @@ resource "azurerm_storage_container" "tfstate" {
 }
 
 # Grant GitHub Actions managed identity permission to read/write tfstate
+
 resource "azurerm_role_assignment" "github_actions_storage_blob_contributor" {
-  scope              = azurerm_storage_account.tfstate.id
+  scope                = azurerm_storage_container.tfstate.resource_manager_id
   role_definition_name = "Storage Blob Data Contributor"
-  principal_id       = var.github_actions_managed_identity_principal_id
+  principal_id         = var.github_actions_managed_identity_principal_id
+  principal_type       = "ServicePrincipal"
 }
